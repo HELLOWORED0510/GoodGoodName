@@ -72,27 +72,31 @@ def writeDown(result, file_name):
     return True
 
 
-def getHtml(url, req_params=None, req_headers=None):
-    if req_headers is None:
-        req_headers = {}
-    if req_params is None:
-        req_params = {}
+def getHtml(mz,xs):
+    url = "https://www.xingming.com/dafen/"
 
-    try:
-        common_params = dict(timeout=5, headers=req_headers)
-        if req_params and req_headers:
-            r = requests.get(url, params=req_params, **common_params)
-        else:
-            r = requests.get(url, **common_params)
+    payload="action=test&mz="+mz+"&xs="+xs
+    headers = {
+    'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="100", "Google Chrome";v="100"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'Upgrade-Insecure-Requests': '1',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-User': '?1',
+    'Sec-Fetch-Dest': 'document',
+    'host': 'www.xingming.com',
+    'Cookie': 'ASPSESSIONIDAGDBTBSS=NDJBLNFBKFHDEDECCAJLGBJI; ming=%E5%90%89%E5%87%AF; xing=%E5%B0%B9'
+    }
 
-        # print(r.text, )
-        # print(r.url, r.encoding, r.status_code, r.headers)
-        r.raise_for_status()
+    response = requests.request("POST", url, headers=headers, data=payload)
 
-        return r.text
-        # return response.decode('gb2312', 'ignore')
-    except requests.RequestException:
-        print('Oops! Timeout Error! Sorry!')
+    # print(response.text)
+    
+    return response.text
 
 
 def getScore(name):
@@ -102,23 +106,23 @@ def getScore(name):
     :return: 得分
     """
     try:
-        surname = parse.quote(name[0:1].encode('gb2312'))
-        lastname = parse.quote(name[1:].encode('gb2312'))
+        surname = parse.quote(name[0:1].encode('utf-8'))
+        lastname = parse.quote(name[1:].encode('utf-8'))
     except UnicodeEncodeError as e:
         print(name, '出错：', str(e))
         return
-    s = parse.quote(SEX.encode('gb2312'))
-    detail_url = "http://www.qimingzi.net/simpleReport.aspx?surname=" + surname + "&name=" + lastname + "&sex=" + s
-    html = getHtml(detail_url)
+    s = parse.quote(SEX.encode('utf-8'))
+    detail_url = "https://www.xingming.com/dafen?action=test&mz="+lastname+"&xs="+surname
+    html = getHtml(lastname,surname)
 
-    first_tag = '<div class="fenshu">'
-    last_tag = '</div><a name="zhuanye">'
+    first_tag = '<b><font color=ff0000 size=5>'
+    last_tag = '</font></b>'
     score = html[html.index(first_tag) + len(first_tag): html.index(last_tag)]
-    print("名字：{}  分数：{}".format(name, score))
+    print("名字：{}  分数：{}".format(name, score,detail_url))
     writeDown("{},{}".format(name, score), TESTED_FILE)
-    if score and int(score) >= THRESHOLD_SCORE:
+    if score and float(score) >= THRESHOLD_SCORE:
         # 符合阈值要求的结果记录到结果文本
-        result = ','.join([name, score, detail_url])
+        result = ','.join([name, score])
         writeDown(result, RESULT_FILE)
     return score
 
